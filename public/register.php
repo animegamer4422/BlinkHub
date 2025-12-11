@@ -198,7 +198,7 @@ document.querySelectorAll('.show-btn').forEach((btn) => {
         btn.classList.toggle('is-visible', !isVisible);
         btn.setAttribute('aria-pressed', String(!isVisible));
         btn.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
-        btn.textContent = isVisible ? '👁' : '⌣';
+        btn.textContent = isVisible ? '⌣' : '👁';
     });
 });
 </script>

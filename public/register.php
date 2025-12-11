@@ -85,31 +85,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <span class="logo-dark">Blink</span><span class="logo-yellow">Hub</span>
             </a>
 
-            <!-- Deliver-to pill DISABLED on login -->
+            <!-- Deliver-to pill DISABLED on register (same as login) -->
             <div class="location-pill disabled-pill">
                 <span class="loc-label">Deliver to</span>
                 <span class="loc-main">Login required</span>
                 <span class="loc-eta">⏱ --</span>
             </div>
         </div>
+
         <div class="nav-center">
+            <!-- you can keep search enabled or disable it; leaving it enabled here -->
             <div class="search-box">
                 <span class="search-icon">🔍</span>
                 <input type="text" placeholder="Search for chips, milk, Coke, bread..." />
             </div>
         </div>
+
         <div class="nav-right">
-            <?php if ($user): ?>
-                <span class="nav-user">Hi, <?= htmlspecialchars($user['name'] ?? $user['email']) ?></span>
-                <a href="logout.php" class="nav-btn ghost">Logout</a>
-            <?php else: ?>
-                <a href="login.php" class="nav-btn ghost">👤 Login</a>
-            <?php endif; ?>
-            <a href="cart.php" class="nav-btn cart-btn">
+            <a href="login.php" class="nav-btn ghost">👤 Login</a>
+            <a href="register.php" class="nav-btn ghost active-nav-btn">Register</a>
+
+            <!-- Cart visible but disabled on register (same pattern as login) -->
+            <div class="nav-btn cart-btn disabled-cart" title="Login to use cart">
                 🛒
                 <span class="cart-label">Cart</span>
                 <span class="cart-count-badge" id="cart-count">0</span>
-            </a>
+            </div>
         </div>
     </header>
 
@@ -162,15 +163,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             id="reg-confirm"
                             required
                         >
-                        <button
-                            type="button"
-                            class="show-btn"
-                            data-target="reg-confirm"
-                            aria-label="Show password"
-                            aria-pressed="false"
-                        >
-                            ⌣
-                        </button>
+                            <button
+                                type="button"
+                                class="show-btn"
+                                data-target="reg-confirm"
+                                aria-label="Show password"
+                                aria-pressed="false"
+                            >
+                                ⌣
+                            </button>
                     </div>
                 </label>
                 <button type="submit" class="cta-btn auth-btn">Create account</button>

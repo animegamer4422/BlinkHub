@@ -1,73 +1,97 @@
 <?php
+declare(strict_types=1);
+
 session_start();
 require_once __DIR__ . '/../../config/db.php';
 
-$error = "";
-$email = "";
+$error = '';
+$email = '';
 
-// Optional: tiny helper to log to PHP error log (does NOT break redirects)
-function dbg($msg) {
-    error_log("[admin-login] " . $msg);
+// Toggle this off in production if you want quieter logs
+const ADMIN_LOGIN_DEBUG = true;
+
+// Small helper for logging
+function dbg(string $msg): void {
+    if (!ADMIN_LOGIN_DEBUG) {
+        return;
+    }
+    error_log('[admin-login] ' . $msg);
 }
 
-dbg("login.php hit, method=" . ($_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN'));
+dbg('login.php hit, method=' . ($_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN'));
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email    = trim($_POST['email'] ?? "");
-    $password = trim($_POST['password'] ?? "");
+// If already logged in, send straight to dashboard
+if (!empty($_SESSION['admin_id'])) {
+    dbg('Already logged in as admin_id=' . $_SESSION['admin_id'] . ' – redirecting');
+    header('Location: /admin/index.php');
+    exit;
+}
 
-    dbg("POST email={$email}");
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    $email    = trim($_POST['email'] ?? '');
+    $password = trim($_POST['password'] ?? '');
 
-    if ($email === "" || $password === "") {
-        $error = "Email and password are required.";
-        dbg("Validation failed – empty email/password");
+    dbg('POST email=' . $email);
+
+    // Basic validations
+    if ($email === '' || $password === '') {
+        $error = 'Email and password are required.';
+        dbg('Validation failed – empty email or password');
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = 'Please enter a valid email address.';
+        dbg('Validation failed – invalid email format');
+    } elseif (!isset($mysqli) || !$mysqli instanceof mysqli) {
+        $error = 'Database connection not available.';
+        dbg('FATAL: $mysqli is not a valid mysqli instance');
     } else {
-        if (!isset($mysqli) || !$mysqli instanceof mysqli) {
-            $error = "Database connection not available.";
-            dbg("FATAL: \$mysqli is not a valid mysqli instance");
+        // All basic validation passed, try to fetch admin row
+        $sql = 'SELECT id, name, email, password_hash 
+                FROM admin_users 
+                WHERE email = ? 
+                LIMIT 1';
+
+        $stmt = $mysqli->prepare($sql);
+
+        if (!$stmt) {
+            $error = 'Login failed. Please try again later.';
+            dbg('prepare() failed: ' . $mysqli->error);
         } else {
-            $stmt = $mysqli->prepare(
-                "SELECT id, name, email, password_hash 
-                 FROM admin_users 
-                 WHERE email = ?"
-            );
+            $stmt->bind_param('s', $email);
 
-            if (!$stmt) {
-                $error = "Login failed (prep error).";
-                dbg("prepare() failed: " . $mysqli->error);
+            if (!$stmt->execute()) {
+                $error = 'Login failed. Please try again later.';
+                dbg('execute() failed: ' . $stmt->error);
             } else {
-                $stmt->bind_param("s", $email);
-                $stmt->execute();
                 $res   = $stmt->get_result();
-                $admin = $res->fetch_assoc();
+                $admin = $res ? $res->fetch_assoc() : null;
 
-                dbg("Row found? " . ($admin ? "YES" : "NO"));
+                dbg('Row found? ' . ($admin ? 'YES' : 'NO'));
 
                 if ($admin && password_verify($password, $admin['password_hash'])) {
                     // Login success
                     $_SESSION['admin'] = [
-                        'id'    => $admin['id'],
+                        'id'    => (int)$admin['id'],
                         'name'  => $admin['name'],
-                        'email' => $admin['email']
+                        'email' => $admin['email'],
                     ];
 
                     // Extra keys for compatibility with guards like auth_admin.php
-                    $_SESSION['admin_id']    = $admin['id'];
+                    $_SESSION['admin_id']    = (int)$admin['id'];
                     $_SESSION['admin_name']  = $admin['name'];
                     $_SESSION['admin_email'] = $admin['email'];
 
-                    dbg("Login OK for admin_id={$admin['id']}, redirecting to /admin/index.php");
+                    dbg('Login OK for admin_id=' . $admin['id'] . ', redirecting to /admin/index.php');
 
-                    // IMPORTANT: use absolute path so it always hits the admin dashboard
-                    header("Location: /admin/index.php");
+                    header('Location: /admin/index.php');
                     exit;
-                } else {
-                    $error = "Invalid email or password.";
-                    dbg("password_verify failed or no row for email={$email}");
                 }
 
-                $stmt->close();
+                // Either no row or bad password – generic error
+                $error = 'Invalid email or password.';
+                dbg('password_verify failed or no row for email=' . $email);
             }
+
+            $stmt->close();
         }
     }
 }
@@ -86,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <header class="admin-navbar">
         <div class="admin-nav-left">
-            <a href="/index.php" class="admin-logo">
+            <a href="index.php" class="admin-logo">
                 <span class="logo-dark">Blink</span><span class="logo-yellow">Hub</span>
             </a>
             <span class="logo-badge">Admin Panel</span>
@@ -98,37 +122,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <h1 class="page-title">Admin Login</h1>
             <p class="page-subtitle">
-                Sign in with your admin credentials to manage products & users.
+                Sign in with your admin credentials to manage products &amp; users.
             </p>
 
             <?php if ($error): ?>
-                <div class="alert error"><?= htmlspecialchars($error) ?></div>
+                <div class="alert error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
             <?php endif; ?>
 
-            <form method="POST" class="admin-form">
-
-                <label>Email</label>
-                <input 
-                    type="email" 
-                    name="email" 
-                    required 
-                    value="<?= htmlspecialchars($email) ?>"
+            <form method="POST" class="admin-form" autocomplete="on" novalidate>
+                <label for="email">Email</label>
+                <input
+                    id="email"
+                    type="email"
+                    name="email"
+                    required
+                    autocomplete="email"
+                    value="<?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?>"
                 >
 
-                <label>Password</label>
+                <label for="password">Password</label>
                 <div class="input-group">
-                    <input type="password" name="password" id="password" required>
-                    <button type="button" id="togglePassword" class="show-btn">Show</button>
+                    <input
+                        id="password"
+                        type="password"
+                        name="password"
+                        required
+                        autocomplete="current-password"
+                    >
+                    <button
+                        type="button"
+                        id="togglePassword"
+                        class="show-btn"
+                        aria-label="Show password"
+                        aria-pressed="false"
+                    >
+                        ⌣
+                    </button>
                 </div>
 
                 <button class="admin-btn primary btn-full" type="submit">
                     Login
                 </button>
-
             </form>
 
             <p class="auth-note">
-                This area is only for store admins.  
+                This area is only for store admins.
                 If you’re a customer, use the regular login page.
             </p>
         </div>
@@ -137,16 +175,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script>
-document.getElementById("togglePassword").addEventListener("click", function () {
-    const field = document.getElementById("password");
-    if (field.type === "password") {
-        field.type = "text";
-        this.textContent = "Hide";
-    } else {
-        field.type = "password";
-        this.textContent = "Show";
-    }
-});
+const passwordField = document.getElementById("password");
+const togglePassword = document.getElementById("togglePassword");
+
+if (passwordField && togglePassword) {
+    togglePassword.addEventListener("click", () => {
+        const isVisible = passwordField.type === "text";
+
+        passwordField.type = isVisible ? "password" : "text";
+
+        togglePassword.classList.toggle("is-visible", !isVisible);
+        togglePassword.setAttribute("aria-pressed", String(!isVisible));
+        togglePassword.setAttribute(
+            "aria-label",
+            isVisible ? "Show password" : "Hide password"
+        );
+
+        togglePassword.textContent = isVisible ? "⌣" : "👁";
+    });
+}
 </script>
 
 </body>

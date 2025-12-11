@@ -8,7 +8,7 @@ $user = $_SESSION['user'] ?? null;
 $user = $_SESSION['user'] ?? null;
 
 // --- Load default address (if logged in) ---
-$locMainText = 'Kingsbury, Charholi';
+$locMainText = 'Home or office';
 $locEtaText  = '⏱ 10-15 mins';
 
 if ($user && isset($user['id'])) {
@@ -137,7 +137,7 @@ if ($prodResult) {
             </label>
             <label>
                 Flat / House / Building *
-                <input type="text" name="line1" required placeholder="E2-703, Kingsbury" />
+                <input type="text" name="line1" required placeholder="E2 Building , 703 Flat" />
             </label>
             <label>
                 Street / Area
@@ -149,7 +149,7 @@ if ($prodResult) {
             </label>
             <label>
                 City *
-                <input type="text" name="city" required value="Pune" />
+                <input type="text" name="city" required placeholder="Pune" />
             </label>
             <label>
                 Pincode *

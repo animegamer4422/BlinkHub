@@ -81,13 +81,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="page">
     <header class="navbar">
         <div class="nav-left">
-            <div class="logo">
+            <a href="index.php" class="logo" aria-label="BlinkHub home">
                 <span class="logo-dark">Blink</span><span class="logo-yellow">Hub</span>
-            </div>
-            <div class="location-pill">
+            </a>
+
+            <!-- Deliver-to pill DISABLED on login -->
+            <div class="location-pill disabled-pill">
                 <span class="loc-label">Deliver to</span>
-                <span class="loc-main">Kingsbury, Charholi</span>
-                <span class="loc-eta">⏱ 10-15 mins</span>
+                <span class="loc-main">Login required</span>
+                <span class="loc-eta">⏱ --</span>
             </div>
         </div>
         <div class="nav-center">

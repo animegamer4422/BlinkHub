@@ -1090,3 +1090,56 @@ body {
         padding-top: 70px;
     }
 }
+
+/* Password eye toggle for auth pages */
+
+.input-with-toggle {
+    position: relative;
+    width: 100%;
+}
+
+.input-with-toggle input {
+    width: 100%;
+    padding-right: 2.6rem; /* space for eye button */
+}
+
+.show-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.45);
+    color: #e5e5e5;
+    font-size: 15px;
+    cursor: pointer;
+    padding: 0;
+    outline: none;
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease,
+        transform 0.1s ease,
+        box-shadow 0.18s ease;
+}
+
+.show-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+    transform: translateY(-50%) scale(1.04);
+}
+
+.show-btn.is-visible {
+    background: #7fe36e;
+    border-color: #7fe36e;
+    color: #020402;
+    box-shadow: 0 0 0 1px rgba(127, 227, 110, 0.35);
+}

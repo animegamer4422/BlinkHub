@@ -111,7 +111,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </label>
                 <label>
                     Password
-                    <input type="password" name="password" required>
+                    <div class="input-with-toggle">
+                        <input
+                            type="password"
+                            name="password"
+                            id="login-password"
+                            required
+                        >
+                        <button
+                            type="button"
+                            class="show-btn"
+                            data-target="login-password"
+                            aria-label="Show password"
+                            aria-pressed="false"
+                        >
+                            ⌣
+                        </button>
+                    </div>
                 </label>
                 <button type="submit" class="cta-btn auth-btn">Login</button>
             </form>
@@ -130,5 +146,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script src="js/app.js"></script>
+<script>
+document.querySelectorAll('.show-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+        const targetId = btn.dataset.target;
+        const field = document.getElementById(targetId);
+        if (!field) return;
+
+        const isVisible = field.type === 'text';
+        field.type = isVisible ? 'password' : 'text';
+
+        btn.classList.toggle('is-visible', !isVisible);
+        btn.setAttribute('aria-pressed', String(!isVisible));
+        btn.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
+        btn.textContent = isVisible ? '⌣' : '👁';
+    });
+});
+</script>
 </body>
 </html>

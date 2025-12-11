@@ -9,7 +9,7 @@ if ($user) {
 }
 
 $errors = [];
-$name = '';
+$name  = '';
 $email = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -135,11 +135,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </label>
                 <label>
                     Password
-                    <input type="password" name="password" required>
+                    <div class="input-with-toggle">
+                        <input
+                            type="password"
+                            name="password"
+                            id="reg-password"
+                            required
+                        >
+                        <button
+                            type="button"
+                            class="show-btn"
+                            data-target="reg-password"
+                            aria-label="Show password"
+                            aria-pressed="false"
+                        >
+                            ⌣
+                        </button>
+                    </div>
                 </label>
                 <label>
                     Confirm password
-                    <input type="password" name="confirm" required>
+                    <div class="input-with-toggle">
+                        <input
+                            type="password"
+                            name="confirm"
+                            id="reg-confirm"
+                            required
+                        >
+                        <button
+                            type="button"
+                            class="show-btn"
+                            data-target="reg-confirm"
+                            aria-label="Show password"
+                            aria-pressed="false"
+                        >
+                            ⌣
+                        </button>
+                    </div>
                 </label>
                 <button type="submit" class="cta-btn auth-btn">Create account</button>
             </form>
@@ -153,5 +185,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script src="js/app.js"></script>
+<script>
+document.querySelectorAll('.show-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+        const targetId = btn.dataset.target;
+        const field = document.getElementById(targetId);
+        if (!field) return;
+
+        const isVisible = field.type === 'text';
+        field.type = isVisible ? 'password' : 'text';
+
+        btn.classList.toggle('is-visible', !isVisible);
+        btn.setAttribute('aria-pressed', String(!isVisible));
+        btn.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
+        btn.textContent = isVisible ? '👁' : '⌣';
+    });
+});
+</script>
 </body>
 </html>

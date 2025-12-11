@@ -637,14 +637,6 @@ body.admin-login-page {
     }
 }
 
-.user-form-card {
-    /* hook for future tweaks */
-}
-
-.user-table-card {
-    /* hook for future tweaks */
-}
-
 .user-name {
     font-weight: 500;
     color: var(--admin-text);

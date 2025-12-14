@@ -4,9 +4,6 @@ require_once __DIR__ . '/../config/db.php';
 
 $user = $_SESSION['user'] ?? null;
 
-
-$user = $_SESSION['user'] ?? null;
-
 // --- Load default address (if logged in) ---
 $locMainText = 'Home or office';
 $locEtaText  = '⏱ 10-15 mins';
@@ -36,7 +33,6 @@ if ($user && isset($user['id'])) {
     }
 }
 
-
 // Load categories
 $categories = [];
 $catResult = $mysqli->query("SELECT name FROM categories ORDER BY sort_order, name");
@@ -47,7 +43,7 @@ if ($catResult) {
     $catResult->free();
 }
 
-// Load products
+// Load products (NOW INCLUDING image_url)
 $products = [];
 $sql = "
     SELECT 
@@ -58,12 +54,12 @@ $sql = "
         p.tag,
         p.eta_minutes,
         p.tags,
+        p.image_url,
         c.name AS category_name
     FROM products p
     JOIN categories c ON c.id = p.category_id
     WHERE p.is_active = 1
     ORDER BY p.id
-
 ";
 $prodResult = $mysqli->query($sql);
 if ($prodResult) {
@@ -77,7 +73,7 @@ if ($prodResult) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BlinkHub – Blinkit clone</title>
+    <title>BlinkHub</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -89,15 +85,15 @@ if ($prodResult) {
             <a href="index.php" class="logo" aria-label="BlinkHub home">
                 <span class="logo-dark">Blink</span><span class="logo-yellow">Hub</span>
             </a>
-                <div class="location-pill" id="location-pill">
-                    <span class="loc-label">Deliver to</span>
-                    <span class="loc-main" id="loc-main-text">
-                        <?= htmlspecialchars($locMainText) ?>
-                    </span>
-                    <span class="loc-eta"><?= $locEtaText ?></span>
-                </div>
-
+            <div class="location-pill" id="location-pill">
+                <span class="loc-label">Deliver to</span>
+                <span class="loc-main" id="loc-main-text">
+                    <?= htmlspecialchars($locMainText) ?>
+                </span>
+                <span class="loc-eta"><?= $locEtaText ?></span>
+            </div>
         </div>
+
         <div class="nav-center">
             <div class="search-box">
                 <span class="search-icon">🔍</span>
@@ -108,8 +104,8 @@ if ($prodResult) {
                     autocomplete="off"
                 />
             </div>
-
         </div>
+
         <div class="nav-right">
             <?php if ($user): ?>
                 <span class="nav-user">Hi, <?= htmlspecialchars($user['name'] ?? $user['email']) ?></span>
@@ -122,78 +118,78 @@ if ($prodResult) {
                 <span class="cart-label">Cart</span>
                 <span class="cart-count-badge" id="cart-count">0</span>
             </a>
+
             <!-- Address modal -->
-<div class="address-backdrop hidden" id="address-modal">
-    <div class="address-dialog">
-        <h2>Delivery address</h2>
-        <p class="address-subtitle">
-            Save your delivery address so riders know exactly where to drop your snacks.
-        </p>
+            <div class="address-backdrop hidden" id="address-modal">
+                <div class="address-dialog">
+                    <h2>Delivery address</h2>
+                    <p class="address-subtitle">
+                        Save your delivery address so riders know exactly where to drop your snacks.
+                    </p>
 
-        <form id="address-form" class="address-form">
-            <label>
-                Address label (Home / Work)
-                <input type="text" name="label" placeholder="Home" />
-            </label>
-            <label>
-                Flat / House / Building *
-                <input type="text" name="line1" required placeholder="E2 Building , 703 Flat" />
-            </label>
-            <label>
-                Street / Area
-                <input type="text" name="line2" placeholder="Near XYZ Chowk" />
-            </label>
-            <label>
-                Landmark
-                <input type="text" name="landmark" placeholder="Opp. ABC temple / shop" />
-            </label>
-            <label>
-                City *
-                <input type="text" name="city" required placeholder="Pune" />
-            </label>
-            <label>
-                Pincode *
-                <input type="text" name="pincode" required placeholder="412105" />
-            </label>
-            <label>
-                Phone
-                <input type="text" name="phone" placeholder="10-digit mobile" />
-            </label>
+                    <form id="address-form" class="address-form">
+                        <label>
+                            Address label (Home / Work)
+                            <input type="text" name="label" placeholder="Home" />
+                        </label>
+                        <label>
+                            Flat / House / Building *
+                            <input type="text" name="line1" required placeholder="E2 Building , 703 Flat" />
+                        </label>
+                        <label>
+                            Street / Area
+                            <input type="text" name="line2" placeholder="Near XYZ Chowk" />
+                        </label>
+                        <label>
+                            Landmark
+                            <input type="text" name="landmark" placeholder="Opp. ABC temple / shop" />
+                        </label>
+                        <label>
+                            City *
+                            <input type="text" name="city" required placeholder="Pune" />
+                        </label>
+                        <label>
+                            Pincode *
+                            <input type="text" name="pincode" required placeholder="412105" />
+                        </label>
+                        <label>
+                            Phone
+                            <input type="text" name="phone" placeholder="10-digit mobile" />
+                        </label>
 
-            <div class="address-form-actions">
-                <button type="button" class="nav-btn ghost" id="address-cancel">
-                    Cancel
-                </button>
-                <button type="submit" class="cta-btn">
-                    Save & use this address
-                </button>
+                        <div class="address-form-actions">
+                            <button type="button" class="nav-btn ghost" id="address-cancel">
+                                Cancel
+                            </button>
+                            <button type="submit" class="cta-btn">
+                                Save & use this address
+                            </button>
+                        </div>
+
+                        <p class="address-status" id="address-status"></p>
+                    </form>
+                </div>
             </div>
-
-            <p class="address-status" id="address-status"></p>
-        </form>
-    </div>
-</div>
-
         </div>
     </header>
 
     <!-- Category strip -->
-<section class="category-strip">
-    <?php if ($categories): ?>
-        <!-- Default "All" filter -->
-        <button class="category-pill active" data-category="">All</button>
+    <section class="category-strip">
+        <?php if ($categories): ?>
+            <!-- Default "All" filter -->
+            <button class="category-pill active" data-category="">All</button>
 
-        <?php foreach ($categories as $cat): ?>
-            <button 
-                class="category-pill" 
-                data-category="<?= htmlspecialchars($cat) ?>">
-                <?= htmlspecialchars($cat) ?>
-            </button>
-        <?php endforeach; ?>
-    <?php else: ?>
-        <span class="section-subtitle">No categories found in DB.</span>
-    <?php endif; ?>
-</section>
+            <?php foreach ($categories as $cat): ?>
+                <button 
+                    class="category-pill" 
+                    data-category="<?= htmlspecialchars($cat) ?>">
+                    <?= htmlspecialchars($cat) ?>
+                </button>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <span class="section-subtitle">No categories found in DB.</span>
+        <?php endif; ?>
+    </section>
 
     <!-- Product grid -->
     <main class="content">
@@ -206,21 +202,32 @@ if ($prodResult) {
         <?php else: ?>
             <div class="product-grid">
                 <?php foreach ($products as $index => $p): ?>
+                    <?php $imgUrl = trim($p['image_url'] ?? ''); ?>
                     <article class="product-card"
                         data-index="<?= (int)$index ?>"
                         data-name="<?= htmlspecialchars($p['name']) ?>"
                         data-category="<?= htmlspecialchars($p['category_name']) ?>"
                         data-tags="<?= htmlspecialchars($p['tags']) ?>">
 
-
                         <div class="product-thumb">
                             <?php if (!empty($p['tag'])): ?>
                                 <div class="product-chip"><?= htmlspecialchars($p['tag']) ?></div>
                             <?php endif; ?>
-                            <div class="product-placeholder">
-                                <span><?= htmlspecialchars($p['category_name']) ?></span>
-                            </div>
+
+                            <?php if ($imgUrl !== ''): ?>
+                                <img
+                                    src="<?= htmlspecialchars($imgUrl) ?>"
+                                    alt="<?= htmlspecialchars($p['name']) ?>"
+                                    class="product-img"
+                                    loading="lazy"
+                                >
+                            <?php else: ?>
+                                <div class="product-placeholder">
+                                    <span><?= htmlspecialchars($p['category_name']) ?></span>
+                                </div>
+                            <?php endif; ?>
                         </div>
+
                         <div class="product-body">
                             <h3 class="product-name"><?= htmlspecialchars($p['name']) ?></h3>
                             <p class="product-meta">
@@ -230,20 +237,20 @@ if ($prodResult) {
                                 <span class="price">₹<?= number_format((int)$p['price']) ?></span>
                                 <span class="mrp">₹<?= number_format((int)$p['mrp']) ?></span>
                             </div>
-                                <div class="qty-controls" 
-                                    data-id="<?= (int)$p['id'] ?>" 
-                                    data-name="<?= htmlspecialchars($p['name']) ?>" 
-                                    data-price="<?= (int)$p['price'] ?>">
-                                    
-                                    <button class="add-btn">+ Add</button>
 
-                                    <div class="stepper hidden">
-                                        <button class="stepper-minus">-</button>
-                                        <span class="stepper-qty">1</span>
-                                        <button class="stepper-plus">+</button>
-                                    </div>
+                            <div class="qty-controls" 
+                                data-id="<?= (int)$p['id'] ?>" 
+                                data-name="<?= htmlspecialchars($p['name']) ?>" 
+                                data-price="<?= (int)$p['price'] ?>">
+
+                                <button class="add-btn">+ Add</button>
+
+                                <div class="stepper hidden">
+                                    <button class="stepper-minus">-</button>
+                                    <span class="stepper-qty">1</span>
+                                    <button class="stepper-plus">+</button>
                                 </div>
-
+                            </div>
                         </div>
                     </article>
                 <?php endforeach; ?>
@@ -252,7 +259,6 @@ if ($prodResult) {
     </main>
 
     <footer class="footer">
-        <span>Made for fun • Stack: PHP + MySQL + Pornhub theme</span>
     </footer>
 </div>
 

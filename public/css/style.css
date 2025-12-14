@@ -1137,6 +1137,15 @@ body {
     transform: translateY(-50%) scale(1.04);
 }
 
+.product-thumb img.product-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* or 'cover' if you want it cropped */
+    display: block;
+    border-radius: 12px;
+}
+
+
 .show-btn.is-visible {
     background: #7fe36e;
     border-color: #7fe36e;

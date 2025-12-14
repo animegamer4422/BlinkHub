@@ -1036,3 +1036,62 @@ body.admin-login-page {
         grid-template-columns: 1fr;
     }
 }
+
+/* Image upload UX */
+
+.image-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.image-input-row input[type="text"] {
+    flex: 1;
+}
+
+.image-upload-meta {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+}
+
+.image-file-name {
+    color: #7b8288;
+}
+
+.image-file-name.has-file {
+    color: #e7edef;
+    font-weight: 500;
+}
+
+.image-upload-progress {
+    position: relative;
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.image-upload-progress.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.image-upload-bar {
+    position: absolute;
+    inset: 0;
+    width: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(127, 227, 110, 0.2),
+        #7fe36e,
+        rgba(127, 227, 110, 0.2)
+    );
+    border-radius: 999px;
+}

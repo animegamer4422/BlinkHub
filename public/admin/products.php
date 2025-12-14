@@ -5,6 +5,11 @@ require_once __DIR__ . '/../../config/db.php';
 $statusMessage = '';
 $statusType    = '';
 
+// ---------- IMAGE UPLOAD CONFIG ----------
+$publicRoot    = dirname(__DIR__);            // .../public
+$uploadDirFs   = $publicRoot . '/images';     // filesystem path
+$uploadDirUrl  = '/images';                   // URL prefix for browser
+
 // ---------- LOAD CATEGORIES ----------
 $catRes     = $mysqli->query("SELECT id, name FROM categories ORDER BY name ASC");
 $categories = $catRes ? $catRes->fetch_all(MYSQLI_ASSOC) : [];
@@ -28,18 +33,73 @@ if (isset($_GET['toggle'])) {
 
 // ---------- CREATE / UPDATE PRODUCT ----------
 if (isset($_POST['action'])) {
+    $hasError = false;
+
     $name     = trim($_POST['name'] ?? '');
     $mrp      = (float) ($_POST['mrp'] ?? 0);
     $price    = (float) ($_POST['price'] ?? 0);
-    $img      = trim($_POST['image_url'] ?? '');
+    $img      = trim($_POST['image_url'] ?? ''); // manual URL (can be overridden by upload)
     $catId    = (int) ($_POST['category_id'] ?? 0);
     $tags     = trim($_POST['tags'] ?? '');
     $isActive = isset($_POST['is_active']) ? 1 : 0;
 
+    // Basic validation
     if ($name === '' || $price <= 0 || $mrp <= 0) {
         $statusMessage = "Name, MRP, and Price are required.";
         $statusType    = "error";
-    } else {
+        $hasError      = true;
+    }
+
+    // ---------- HANDLE IMAGE UPLOAD (optional) ----------
+    if (!$hasError && isset($_FILES['image_file']) && $_FILES['image_file']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $file = $_FILES['image_file'];
+
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            $statusMessage = "Image upload failed (error code {$file['error']}).";
+            $statusType    = "error";
+            $hasError      = true;
+        } else {
+            // Validate extension
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+
+            if (!in_array($ext, $allowedExt, true)) {
+                $statusMessage = "Invalid image type. Allowed: JPG, JPEG, PNG, WEBP, GIF.";
+                $statusType    = "error";
+                $hasError      = true;
+            } else {
+                // Ensure upload directory exists
+                if (!is_dir($uploadDirFs)) {
+                    if (!mkdir($uploadDirFs, 0775, true) && !is_dir($uploadDirFs)) {
+                        $statusMessage = "Cannot create images directory.";
+                        $statusType    = "error";
+                        $hasError      = true;
+                    }
+                }
+
+                if (!$hasError) {
+                    // Generate safe filename
+                    $base = 'prod_' . time() . '_' . bin2hex(random_bytes(4));
+                    $base = preg_replace('/[^A-Za-z0-9_\-]/', '', $base);
+                    $filename   = $base . '.' . $ext;
+                    $targetFs   = $uploadDirFs . '/' . $filename;
+                    $targetUrl  = $uploadDirUrl . '/' . $filename;
+
+                    if (!move_uploaded_file($file['tmp_name'], $targetFs)) {
+                        $statusMessage = "Could not move uploaded image.";
+                        $statusType    = "error";
+                        $hasError      = true;
+                    } else {
+                        // Uploaded image wins over manual text if both were provided
+                        $img = $targetUrl;
+                    }
+                }
+            }
+        }
+    }
+
+    // ---------- DB WRITE ONLY IF NO ERRORS ----------
+    if (!$hasError) {
         if ($_POST['action'] === 'create') {
             $stmt = $mysqli->prepare("
                 INSERT INTO products (name, mrp, price, image_url, category_id, tags, is_active)
@@ -59,11 +119,10 @@ if (isset($_POST['action'])) {
             if ($id > 0) {
                 $stmt = $mysqli->prepare("
                     UPDATE products 
-                    SET name=?, mrp=?, price=?, image_url=?, category_id=?, tags=?, is_active=?
-                    WHERE id=?
+                    SET name = ?, mrp = ?, price = ?, image_url = ?, category_id = ?, tags = ?, is_active = ?
+                    WHERE id = ?
                 ");
                 if ($stmt) {
-                    // NOTE: 8 params → 'sddsisii'
                     $stmt->bind_param('sddsisii', $name, $mrp, $price, $img, $catId, $tags, $isActive, $id);
                     $ok = $stmt->execute();
                     $stmt->close();
@@ -190,7 +249,7 @@ if (isset($_GET['edit'])) {
             </div>
 
             <?php if ($statusMessage): ?>
-                <div class="alert alert-<?= $statusType ?>">
+                <div class="alert alert-<?= htmlspecialchars($statusType) ?>">
                     <?= htmlspecialchars($statusMessage) ?>
                 </div>
             <?php endif; ?>
@@ -207,11 +266,10 @@ if (isset($_GET['edit'])) {
                         </span>
                     </div>
                     <p class="section-subtitle">
-                        Fill in product details, pricing and category. You can toggle visibility with the
-                        <em>Active</em> switch.
+                        Fill in product details, pricing and category. You can upload an image or paste a URL.
                     </p>
 
-                    <form method="post" class="admin-form">
+                    <form method="post" class="admin-form" enctype="multipart/form-data">
                         <?php if ($editingProduct): ?>
                             <input type="hidden" name="action" value="update">
                             <input type="hidden" name="product_id" value="<?= (int)$editingProduct['id'] ?>">
@@ -250,13 +308,47 @@ if (isset($_GET['edit'])) {
                             </label>
                         </div>
 
-                        <label>Image URL</label>
-                        <input
-                            type="text"
-                            name="image_url"
-                            placeholder="https://…"
-                            value="<?= htmlspecialchars($editingProduct['image_url'] ?? '') ?>"
-                        >
+                            <label>Product Image</label>
+                            <div class="image-input-row">
+                                <input
+                                    type="text"
+                                    name="image_url"
+                                    placeholder="https://… or /images/product-x.png"
+                                    value="<?= htmlspecialchars($editingProduct['image_url'] ?? '') ?>"
+                                >
+                                <button
+                                    type="button"
+                                    class="admin-btn ghost image-upload-trigger"
+                                    onclick="document.getElementById('image_file').click()"
+                                >
+                                    Upload…
+                                </button>
+                            </div>
+
+                            <input
+                                type="file"
+                                id="image_file"
+                                name="image_file"
+                                accept="image/*"
+                                style="display:none"
+                            />
+
+                            <div class="image-upload-meta">
+                                <span id="image-file-name" class="image-file-name">
+                                    No file selected
+                                </span>
+
+                                <div id="image-upload-progress" class="image-upload-progress">
+                                    <div class="image-upload-bar"></div>
+                                </div>
+                            </div>
+
+                            <small class="image-hint">
+                                Optional: choose a file to upload into <code>/public/images</code>,
+                                or just paste a full image URL above. When uploading, you'll see
+                                the file name and a progress indicator.
+                            </small>
+
 
                         <label>Category</label>
                         <select name="category_id">
@@ -401,6 +493,48 @@ if (isset($_GET['edit'])) {
         </main>
     </div>
 </div>
+
+<script>
+(function () {
+    const fileInput    = document.getElementById('image_file');
+    const fileNameEl   = document.getElementById('image-file-name');
+    const progressWrap = document.getElementById('image-upload-progress');
+    const progressBar  = progressWrap ? progressWrap.querySelector('.image-upload-bar') : null;
+    const form         = document.querySelector('.admin-form');
+
+    if (fileInput && fileNameEl) {
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files && fileInput.files[0]) {
+                fileNameEl.textContent = fileInput.files[0].name;
+                fileNameEl.classList.add('has-file');
+            } else {
+                fileNameEl.textContent = 'No file selected';
+                fileNameEl.classList.remove('has-file');
+            }
+        });
+    }
+
+    if (form && progressWrap && progressBar && fileInput) {
+        form.addEventListener('submit', () => {
+            // Only show progress bar if a file is actually being uploaded
+            if (fileInput.files && fileInput.files[0]) {
+                progressWrap.classList.add('visible');
+
+                let width = 0;
+                const tick = () => {
+                    width += Math.random() * 10; // move in small random chunks
+                    if (width > 90) width = 90;  // stop at 90%, server refresh will finish the "rest"
+                    progressBar.style.width = width + '%';
+                    if (width < 90) {
+                        setTimeout(tick, 200);
+                    }
+                };
+                tick();
+            }
+        });
+    }
+})();
+</script>
 
 </body>
 </html>

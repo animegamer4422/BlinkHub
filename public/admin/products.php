@@ -222,6 +222,7 @@ if (isset($_GET['edit'])) {
                 <a href="index.php" class="menu-item">Dashboard</a>
                 <a href="products.php" class="menu-item active">Products</a>
                 <a href="users.php" class="menu-item">Users</a>
+                <a href="wishlist.php" class="menu-item">Wishlist</a>
             </nav>
         </aside>
 

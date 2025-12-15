@@ -3,14 +3,31 @@ require_once __DIR__ . '/../../src/auth_admin.php';
 require_once __DIR__ . '/../../config/db.php';
 
 // Count products
-$totalProducts = $mysqli->query("SELECT COUNT(*) AS c FROM products")->fetch_assoc()['c'];
+$totalProducts = $mysqli->query("SELECT COUNT(*) AS c FROM products")->fetch_assoc()['c'] ?? 0;
 
 // Count users
-$totalUsers = $mysqli->query("SELECT COUNT(*) AS c FROM users")->fetch_assoc()['c'];
+$totalUsers = $mysqli->query("SELECT COUNT(*) AS c FROM users")->fetch_assoc()['c'] ?? 0;
 
 // Count addresses
-$totalAddresses = $mysqli->query("SELECT COUNT(*) AS c FROM addresses")->fetch_assoc()['c'];
+$totalAddresses = $mysqli->query("SELECT COUNT(*) AS c FROM addresses")->fetch_assoc()['c'] ?? 0;
 
+// Count wishlist (guard if table missing)
+$wishlistTotal   = 0;
+$wishlistPending = 0;
+$tableCheck      = $mysqli->query("SHOW TABLES LIKE 'wishlist_requests'");
+if ($tableCheck && $tableCheck->num_rows > 0) {
+    $res = $mysqli->query("
+        SELECT 
+            COUNT(*) AS total,
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending
+        FROM wishlist_requests
+    ");
+    if ($res) {
+        $row            = $res->fetch_assoc();
+        $wishlistTotal   = (int)($row['total'] ?? 0);
+        $wishlistPending = (int)($row['pending'] ?? 0);
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -32,7 +49,9 @@ $totalAddresses = $mysqli->query("SELECT COUNT(*) AS c FROM addresses")->fetch_a
         </div>
 
         <div class="admin-nav-right">
-            <span class="admin-welcome">Logged in as <?= htmlspecialchars($_SESSION['admin_name']) ?></span>
+            <span class="admin-welcome">
+                Logged in as <?= htmlspecialchars($_SESSION['admin_name'] ?? 'Admin') ?>
+            </span>
             <a href="logout.php" class="admin-btn logout-btn">Logout</a>
         </div>
     </header>
@@ -46,6 +65,7 @@ $totalAddresses = $mysqli->query("SELECT COUNT(*) AS c FROM addresses")->fetch_a
                 <a href="index.php" class="menu-item active">Dashboard</a>
                 <a href="products.php" class="menu-item">Products</a>
                 <a href="users.php" class="menu-item">Users</a>
+                <a href="wishlist.php" class="menu-item">Wishlist</a>
             </nav>
         </aside>
 
@@ -56,24 +76,35 @@ $totalAddresses = $mysqli->query("SELECT COUNT(*) AS c FROM addresses")->fetch_a
 
             <div class="stats-grid">
                 <div class="stat-card">
-                    <h3><?= $totalProducts ?></h3>
-                    <p>Products</p>
+                    <div class="stat-label">Products</div>
+                    <div class="stat-value"><?= $totalProducts ?></div>
                 </div>
 
                 <div class="stat-card">
-                    <h3><?= $totalUsers ?></h3>
-                    <p>Registered Users</p>
+                    <div class="stat-label">Registered Users</div>
+                    <div class="stat-value"><?= $totalUsers ?></div>
                 </div>
 
                 <div class="stat-card">
-                    <h3><?= $totalAddresses ?></h3>
-                    <p>Saved Addresses</p>
+                    <div class="stat-label">Saved Addresses</div>
+                    <div class="stat-value"><?= $totalAddresses ?></div>
+                </div>
+
+                <div class="stat-card stat-accent">
+                    <div class="stat-label">
+                        Wishlist Requests
+                        <?php if ($wishlistPending > 0): ?>
+                            <span class="stat-pill"><?= $wishlistPending ?> pending</span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="stat-value"><?= $wishlistTotal ?></div>
                 </div>
             </div>
 
             <div class="quick-links">
                 <a href="products.php" class="admin-btn primary">Manage Products</a>
                 <a href="users.php" class="admin-btn ghost">Manage Users</a>
+                <a href="wishlist.php" class="admin-btn ghost">Review Wishlist</a>
             </div>
         </main>
 

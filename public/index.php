@@ -113,6 +113,12 @@ if ($prodResult) {
             <?php else: ?>
                 <a href="login.php" class="nav-btn ghost">👤 Login</a>
             <?php endif; ?>
+
+            <!-- NEW: Wishlist button -->
+            <a href="wishlist.php" class="nav-btn ghost wishlist-btn">
+                🤍 Wishlist
+            </a>
+
             <a href="cart.php" class="nav-btn cart-btn">
                 🛒
                 <span class="cart-label">Cart</span>
